@@ -36,24 +36,30 @@ This is a Flask-based web application that automatically generates cinematic mus
 ## 📦 Folder Structure
 
 ```
-├── app.py # Flask backend entry point
-├── templates/ # HTML templates
+├── app.py                  # Flask backend entry point
+├── templates/              # HTML templates
 ├── static/
-│   ├── uploads/ # Uploaded and processed files
-│   ├── videos/ # Generated video outputs
-│   └── style/ # CSS and static assets
+│   ├── uploads/            # Uploaded and processed files
+│   ├── videos/             # Generated video outputs
+│   └── style/              # CSS and static assets
 ├── utils/
-│   ├── transcribe.py # Whisper transcription logic
-│   ├── emotion_audio.py # Audio emotion detection
-│   ├── emotion_lyrics.py # Lyrics emotion classification
-│   ├── postprocess.py # Stitching videos and audio
-│   ├── chorus.py # Chorus extraction using pychorus
-│   ├── prompt_gen.py # Prompt creation using GPT or Gemini
-│   └── video_gen.py # Google Veo video generation
-├── requirements.txt # Python package dependencies
-├── .env # API keys and secrets
-└── README.md # This file
+│   ├── __pycache__/
+│   ├── chorus_extractor.py     # Chorus extraction using pychorus
+│   ├── emotion_audio.py        # Audio emotion detection
+├── emotion_lyrics_model/
+│   └── model_name/         # Fine-tuned emotion classification model
+│       ├── config.json
+│       ├── labels.txt
+│       ├── model.safetensors
+│       ├── special_tokens_map.json
+│       ├── tokenizer_config.json
+│       └── vocab.txt
+├── requirements.txt       # Python package dependencies
+├── .env                   # API keys and secrets
+└── README.md              # Project overview and instructions
 ```
+
+*please ensure you have the static folder*
 
 ---
 
@@ -85,7 +91,7 @@ GOOGLE_STORAGE_BUCKET=gs://your-storage-bucket
 ### 4. Run the App
 
 ```bash
-python app.py
+flask run
 ```
 
 Visit [http://localhost:5000](http://localhost:5000) in your browser.
