@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Emotion-Aware Music Video Generator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 30px;
+      background-color: #fafafa;
+      color: #333;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    form {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    select,
+    input[type="file"],
+    input[type="submit"] {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    input[type="submit"] {
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      margin-top: 20px;
+      border: none;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #2980b9;
+    }
+
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 30px auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    #status p {
+      font-weight: bold;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+
+    #results,
+    #videoPreview {
+      margin-top: 30px;
+    }
+
+    pre {
+      background: #f4f4f4;
+      padding: 15px;
+      border-left: 4px solid #3498db;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+
+    video {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    a {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+      text-align: center;
+      color: #2c3e50;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    h3 {
+      color: #2c3e50;
+      margin-top: 25px;
+    }
+
+    button.copy-btn {
+      background-color: #e74c3c;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    button.copy-btn:hover {
+      background-color: #c0392b;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+  <h1>🎵 Emotion-Aware Music Video Generator</h1>
+  <form id="uploadForm">
+    <label for="audio">Upload Audio File:</label>
+    <input type="file" name="audio" accept="audio/*" required>
+    <label for="model">Choose AI Model:</label>
+    <select name="model" required>
+      <option value="gpt4o">GPT-4o (OpenAI)</option>
+      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Google)</option>
+    </select>
+    <input type="submit" value="Generate">
+  </form>
+
+  <div class="spinner" id="spinner"></div>
+  <div id="status"></div>
+  <div id="results"></div>
+  <div id="download"></div>
+  <div id="videoPreview"></div>
+
+  <script>
+    let pollInterval = null;
+    let shownLyrics = false;
+    let shownEmotions = false;
+    let shownChorus = false;
+    let shownLyricEmotion = false;
+    let shownPrompt = false;
+    let shownVideo = false;
+
+    const spinner = document.getElementById("spinner");
+
+    document.getElementById("uploadForm").onsubmit = async function (e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      document.getElementById("status").innerHTML = "<p>Uploading and starting process...</p>";
+      document.getElementById("results").innerHTML = "";
+      document.getElementById("download").innerHTML = "";
+      document.getElementById("videoPreview").innerHTML = "";
+      shownLyrics = shownEmotions = shownChorus = shownLyricEmotion = shownPrompt = shownVideo = false;
+      spinner.style.display = "block";
+
+      await fetch("/process", {
+        method: "POST",
+        body: formData
+      });
+
+      pollInterval = setInterval(checkStatus, 1000);
+    };
+
+    async function checkStatus() {
+      const res = await fetch("/status");
+      const result = await res.json();
+      document.getElementById("status").innerHTML = `<p><strong>Status:</strong> ${result.done ? "✅" : "⏳"} ${result.message}</p>`;
+      const resultsDiv = document.getElementById("results");
+
+      if (!shownLyrics && result.data.lyrics) {
+        resultsDiv.innerHTML += `<h3>🎤 Lyrics</h3><pre>${result.data.lyrics}</pre>`;
+        shownLyrics = true;
+      }
+
+      if (!shownEmotions && result.data.audio_emotions?.tags) {
+        const tags = result.data.audio_emotions.tags.map(([tag, score]) => `${tag} (${score})`).join(", ");
+        resultsDiv.innerHTML += `<h3>🎧 Audio Mood Tags</h3><p>${tags}</p><p>💖 Valence: ${result.data.audio_emotions.valence}, ⚡ Arousal: ${result.data.audio_emotions.arousal}</p>`;
+        shownEmotions = true;
+      }
+
+      if (!shownLyricEmotion && result.data.lyric_emotions) {
+        const emo = result.data.lyric_emotions;
+        resultsDiv.innerHTML += `<h3>🧠 Lyric Emotion</h3><p><strong>${emo.label}</strong> – ${(emo.confidence * 100).toFixed(1)}%</p>`;
+        shownLyricEmotion = true;
+      }
+
+      if (!shownPrompt && result.data.prompts?.length) {
+        const markdown = result.data.prompts.map((prompt, i) => `${i + 1}\n\n${prompt}`).join("\n\n");
+        const html = marked.parse(markdown);
+        resultsDiv.innerHTML += `
+          <h3>🎬 Video Prompts</h3>
+          <div id="promptText">${html}</div>
+          <button class="copy-btn" onclick="copyPrompt()">📋 Copy Prompt</button>
+        `;
+        shownPrompt = true;
+      }
+
+      if (!shownChorus && result.data.chorus_audio_url) {
+        resultsDiv.innerHTML += `
+          <h3>🎼 Chorus Clip</h3>
+          <audio controls>
+            <source src="${result.data.chorus_audio_url}" type="audio/wav">
+            Your browser does not support the audio element.
+          </audio>`;
+        shownChorus = true;
+      }
+
+      if (result.done) {
+        clearInterval(pollInterval);
+        spinner.style.display = "none";
+
+        if (result.video_path && !shownVideo) {
+          document.getElementById("videoPreview").innerHTML = `
+            <h3>📽️ Generated Video</h3>
+            <video controls>
+              <source src="${result.video_path}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          `;
+          const link = document.createElement("a");
+          link.href = result.video_path;
+          link.textContent = "⬇️ Download Your Final Video";
+          document.getElementById("download").appendChild(link);
+          shownVideo = true;
+        }
+      }
+    }
+
+    function copyPrompt() {
+      const el = document.createElement("textarea");
+      el.value = document.getElementById("promptText").innerText;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      alert("✅ Prompt copied to clipboard!");
+    }
+  </script>
+</body>
+
+</html>

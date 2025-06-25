@@ -1,0 +1,8 @@
+# Ignore static folder
+/static/
+
+# Ignore .env file
+.env
+
+# Ignore emotion_lyrics_model folder
+/emotion_lyrics_model/
